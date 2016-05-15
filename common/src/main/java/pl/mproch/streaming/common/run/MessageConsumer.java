@@ -25,15 +25,19 @@ public class MessageConsumer {
 
     private HttpServer httpServer;
 
-    public MessageConsumer(final List<String> topics) throws IOException {
-        topics.forEach(t -> topicsMap.put(t, new CopyOnWriteArrayList<>()));
+    public MessageConsumer(final Map<String, String> topics) throws IOException {
+        topics.keySet().forEach(t -> topicsMap.put(t, new CopyOnWriteArrayList<>()));
         consumer = prepareConsumer();
-        consumer.subscribe(topics);
+        consumer.subscribe(topics.keySet());
         new Thread(() -> {
             while (running) {
                 consumer.poll(100).forEach(record -> {
                     String keyPrint = record.key() == null ? "" : (", key: " + record.key());
-                    System.out.println("Topic: " + record.topic() + keyPrint + ", value: " + record.value());
+                    System.out.println(
+                            topics.get(record.topic()) +
+                            "Topic: " + record.topic() + keyPrint + ", value: " + record.value()
+                                    //RESET
+                            + "\u001B[0m");
                     topicsMap.get(record.topic()).add(record.value());
                 });
             }
@@ -41,7 +45,7 @@ public class MessageConsumer {
         }).start();
         httpServer = HttpServer.create();
         httpServer.bind(new InetSocketAddress("localhost", 8080), 0);
-        topics.forEach(t ->
+        topics.keySet().forEach(t ->
         httpServer.createContext("/" + t).setHandler((ex) -> {
             OutputStream responseBody = ex.getResponseBody();
             byte[] answer = objectMapper.writeValueAsBytes(topicsMap.get(t));

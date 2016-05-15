@@ -42,9 +42,8 @@ public class WindowDemo extends KafkaDemo {
                             String(), mapperSerializer(AverageRate.class))
                     .toStream()
                     .mapValues(AverageRate::computeRate)
-                    .filter((k, v) -> v < 1)
-                    .to(Windowed(), DoubleStr(), "lowRatingUsers")
-                    ;
+                    .filter((k, v) -> v < 5)
+                    .to(Windowed(), DoubleStr(), "lowRatingUsers");
         });
 
 
