@@ -13,30 +13,30 @@ import kafka.utils.ZkUtils;
 import org.apache.zookeeper.server.NIOServerCnxnFactory;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.ZooKeeperServer;
+import pl.mproch.streaming.model.InternalTopics;
+import pl.mproch.streaming.model.Topics;
 import scala.Some;
 
-public class RunDemo {
+public class DemoRunner {
 
     public static void main(String[] args) throws Exception {
-        new RunDemo(2181, 9092);
+        new DemoRunner(2181, 9092);
 
-        Arrays.asList(
-                "messages", "users",
-                "keyedMessages", "userIdMessages",
-                "messageAmount", "averageRate",
-                "averageHoppingRate", "usersPostingMessage")
-            .forEach(RunDemo::createTopic);
+        Arrays.asList(InternalTopics.values())
+            .forEach(DemoRunner::createTopic);
+        Arrays.asList(Topics.values())
+             .forEach(DemoRunner::createTopic);
 
         new MessageProducer();
 
     }
 
-    private static void createTopic(String name) {
+    private static void createTopic(Object name) {
         ZkUtils zkUtils = ZkUtils.apply("localhost:2181", 20000, 20000, false);
-        AdminUtils.createTopic(zkUtils, name, 1, 1, new Properties(), null);
+        AdminUtils.createTopic(zkUtils, name.toString(), 1, 1, new Properties(), null);
     }
 
-    RunDemo(int zkPort, int kafkaPort) throws Exception {
+    DemoRunner(int zkPort, int kafkaPort) throws Exception {
         runZookeeper(zkPort);
         runKafka(zkPort, kafkaPort);
     }

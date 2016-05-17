@@ -9,6 +9,7 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import pl.mproch.streaming.model.Message;
@@ -24,36 +25,35 @@ public class MessageProducer {
         KafkaProducer<String, byte[]> producer = prepareProducer();
         ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         scheduledExecutorService.scheduleAtFixedRate(() ->
-                        producer.send(generateMessage()), 1500, 1500, TimeUnit.MILLISECONDS);
+                producer.send(generateMessage()), 1500, 1500, TimeUnit.MILLISECONDS);
         scheduledExecutorService.scheduleAtFixedRate(() ->
-                        producer.send(generateUser()), 5000, 5000, TimeUnit.MILLISECONDS);
+                producer.send(generateUser()), 5000, 5000, TimeUnit.MILLISECONDS);
     }
 
     private List<String> randomMessages = Arrays.asList(
             "JEEConf", "Kafka Streams", "Apache Flink", "Hadoop", "Kiev");
 
+    private List<String> randomUsers = Arrays.asList(
+            "Mikalai", "Taras", "Vladimir", "Yegor", "Maciek");
 
-    private ProducerRecord<String, byte[]> generateMessage() {
+
+    private ProducerRecord<String, byte[]> recordWithRandomUser(String topic, Function<String, Object> content) {
         try {
-            String userId = "user" + random.nextInt(5);
-            return new ProducerRecord<>("messages",
-                    objectMapper.writeValueAsBytes(
-                            new Message(System.currentTimeMillis(),
-                                    userId, randomMessages.get(random.nextInt(5)), random.nextInt(10))));
+            String userId = randomUsers.get(random.nextInt(5));
+            return new ProducerRecord<>(topic, userId, objectMapper.writeValueAsBytes(content.apply(userId)));
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to generate message");
         }
     }
 
+    private ProducerRecord<String, byte[]> generateMessage() {
+        return recordWithRandomUser("messages", (userId) ->
+                new Message(System.currentTimeMillis(), userId, randomMessages.get(random.nextInt(5)), random.nextInt(10)));
+    }
+
     private ProducerRecord<String, byte[]> generateUser() {
-        try {
-            String userId = "user" + random.nextInt(5);
-            return new ProducerRecord<>("users", userId,
-                    objectMapper.writeValueAsBytes(
-                            new User(userId, "Name", random.nextInt(20), random.nextBoolean() ? 15 : 20)));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to generate message");
-        }
+        return recordWithRandomUser("users", (userId) ->
+                new User(userId, random.nextInt(20), random.nextBoolean() ? 20 : 25));
     }
 
 

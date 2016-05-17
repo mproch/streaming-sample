@@ -11,8 +11,6 @@ public class User {
 
     private String userId;
 
-    private String name;
-
     private int rank;
 
     private int age;

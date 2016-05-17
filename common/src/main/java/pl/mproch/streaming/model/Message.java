@@ -13,21 +13,21 @@ public class Message {
 
     private String userId;
 
-    private String text;
+    private String topic;
 
     private int rate;
 
     private User user;
 
-    public Message(long time, String userId, String text, int rate) {
+    public Message(long time, String userId, String topic, int rate) {
         this.time = time;
         this.userId = userId;
-        this.text = text;
+        this.topic = topic;
         this.rate = rate;
     }
 
     public Message withUser(User user) {
-        return new Message(time, userId, text, rate, user);
+        return new Message(time, userId, topic, rate, user);
 
     }
 
