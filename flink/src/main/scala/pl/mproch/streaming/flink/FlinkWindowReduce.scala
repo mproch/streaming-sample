@@ -13,17 +13,24 @@ object FlinkWindowReduce extends App {
 
   val env: StreamExecutionEnvironment = StreamExecutionEnvironment.createLocalEnvironment(5)
 
-  env.setParallelism(10)
   env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
 
-  val messages = env.addSource(new FlinkKafkaConsumer09[Message]("messages", schema[Message], prepareKafkaProperties))
+  val messages = env.addSource(kafkaConsumer[Message]("messages"))
       .assignAscendingTimestamps(_.time)
 
   messages
     .map(m => MessagesByUser(m.userId, 1))
     .keyBy(_.userId)
     .sum(1)
-    .addSink(new FlinkKafkaProducer09[MessagesByUser]("messageCount", schema[MessagesByUser], prepareKafkaProperties))
+    .addSink(kafkaProducer[MessagesByUser]("messageCount"))
+
+
+  messages
+        .keyBy(_.text)
+          .timeWindow(Time.seconds(10))
+            .fold[List[String]](List(), (ac:List[String], mess:Message) => mess.userId::ac)
+              .map(_.toString())
+                .addSink(kafkaProducer[String]("usersPostingMessage"))
 
   messages
       .map(m => MessagesByUser(m.userId, 1))
@@ -31,7 +38,7 @@ object FlinkWindowReduce extends App {
         .window(SlidingEventTimeWindows.of(Time.seconds(10), Time.seconds(2)))
         .apply[TimedMessagesByUser]((k:String, w:TimeWindow, mes:Iterable[MessagesByUser], c:Collector[TimedMessagesByUser])
           => c.collect(TimedMessagesByUser(k, mes.size, w.getStart)))
-        .addSink(new FlinkKafkaProducer09[TimedMessagesByUser]("timedMessageCount", schema[TimedMessagesByUser], prepareKafkaProperties))
+        .addSink(kafkaProducer[TimedMessagesByUser]("timedMessageCount"))
 
   env.execute("FlinkJob1")
 

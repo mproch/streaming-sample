@@ -15,6 +15,32 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 
 public class MessageConsumer {
 
+    public static final String ANSI_BLACK = "\u001B[30m";
+    public static final String ANSI_RED = "\u001B[31m";
+    public static final String ANSI_GREEN = "\u001B[32m";
+    public static final String ANSI_YELLOW = "\u001B[33m";
+    public static final String ANSI_BLUE = "\u001B[34m";
+    public static final String ANSI_PURPLE = "\u001B[35m";
+    public static final String ANSI_CYAN = "\u001B[36m";
+    public static final String ANSI_WHITE = "\u001B[37m";
+
+    public static void main(String[] args) throws IOException {
+        Map<String, String> topics = new HashMap<>();
+
+        topics.put("highRankUsers", ANSI_CYAN);
+        topics.put("messageCount", ANSI_RED);
+        topics.put("timedMessageCount", ANSI_GREEN);
+        topics.put("averageRateByText", ANSI_YELLOW);
+        topics.put("lowRatingUsers", ANSI_BLUE);
+        topics.put("lowRankedMessages", ANSI_PURPLE);
+
+        topics.put("messages", ANSI_BLACK);
+        topics.put("users", ANSI_BLACK);
+        topics.put("usersPostingMessage", ANSI_CYAN);
+
+        new MessageConsumer(topics);
+    }
+
     private ObjectMapper objectMapper = new ObjectMapper();
 
     private Map<String, List<String>> topicsMap = new HashMap<>();
@@ -36,7 +62,6 @@ public class MessageConsumer {
                     System.out.println(
                             topics.get(record.topic()) +
                             "Topic: " + record.topic() + keyPrint + ", value: " + record.value()
-                                    //RESET
                             + "\u001B[0m");
                     topicsMap.get(record.topic()).add(record.value());
                 });
@@ -56,11 +81,6 @@ public class MessageConsumer {
             responseBody.flush();
         }));
         httpServer.start();
-    }
-
-    void stop() {
-        running = false;
-        httpServer.stop(0);
     }
 
     private static KafkaConsumer<String, String> prepareConsumer() {

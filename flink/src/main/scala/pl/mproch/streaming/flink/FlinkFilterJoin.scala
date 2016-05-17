@@ -11,12 +11,10 @@ import pl.mproch.streaming.model.AverageRate
 
 object FlinkFilterJoin extends App {
 
-  val env: StreamExecutionEnvironment = StreamExecutionEnvironment.createLocalEnvironment(5)
+  val env: StreamExecutionEnvironment = StreamExecutionEnvironment.createLocalEnvironment()
 
-  env.setParallelism(10)
-
-  env.addSource(new FlinkKafkaConsumer09[Message]("messages", schema[Message], prepareKafkaProperties))
-    .connect(env.addSource(new FlinkKafkaConsumer09[User]("users", schema[User], prepareKafkaProperties)))
+  env.addSource(kafkaConsumer[Message]("messages"))
+    .connect(env.addSource(kafkaConsumer[User]("users")))
     .keyBy(_.userId, _.userId)
     .flatMap(new RichCoFlatMapFunction[Message, User, MessageWithUser] {
 
@@ -35,19 +33,17 @@ object FlinkFilterJoin extends App {
       }
     })
     .filter(_.user.exists(_.rank > 10))
-    .addSink(
-      new FlinkKafkaProducer09[MessageWithUser]("highRankUsers", schema[MessageWithUser], prepareKafkaProperties))
+    .addSink(kafkaProducer[MessageWithUser]("highRankUsers"))
 
 
-  env.addSource(new FlinkKafkaConsumer09[Message]("messages", schema[Message], prepareKafkaProperties))
+  env.addSource(kafkaConsumer[Message]("messages"))
     .keyBy(_.text)
     .filterWithState[AverageRate]((mess, maybeState) => {
     val shouldEmit = maybeState.map(_.computeRate() > mess.rate - 1).getOrElse(true)
     val newState = maybeState.getOrElse(new AverageRate()).add(mess.rate)
     (shouldEmit, Some(newState))
   })
-    .addSink(
-      new FlinkKafkaProducer09[Message]("lowRankedMessages", schema[Message], prepareKafkaProperties))
+    .addSink(kafkaProducer[Message]("lowRankedMessages"))
 
 
   env.execute

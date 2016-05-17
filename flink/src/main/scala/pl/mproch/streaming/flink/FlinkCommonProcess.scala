@@ -4,6 +4,7 @@ import java.util.Properties
 
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
+import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaProducer09, FlinkKafkaConsumer09}
 import org.apache.flink.streaming.util.serialization.{KeyedSerializationSchema, DeserializationSchema, SerializationSchema}
 import org.json4s._
 import org.json4s.jackson.Serialization
@@ -11,6 +12,15 @@ import org.json4s.jackson.Serialization.{read, write}
 
 
 object FlinkCommonProcess {
+
+  def kafkaProducer[T<:AnyRef:Manifest](topic: String) = {
+    new FlinkKafkaProducer09[T](topic, schema[T], prepareKafkaProperties)
+  }
+
+
+  def kafkaConsumer[T<:AnyRef:Manifest](topic: String) = {
+    new FlinkKafkaConsumer09[T](topic, schema[T], prepareKafkaProperties)
+  }
 
   def prepareKafkaProperties = {
     val props = new Properties()
